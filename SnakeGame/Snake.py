@@ -3,11 +3,13 @@ import random
 FPS = 144
 tick_counter = 0
 speed = 3
-WIDTH, HEIGHT = 900, 500
-RES = (WIDTH, HEIGHT)
+score = 0
+spd = FPS
 BLOCK_SIZE = 40
+WIDTH, HEIGHT = 22*BLOCK_SIZE, 12*BLOCK_SIZE
+RES = (WIDTH, HEIGHT)
 BLOCK = (BLOCK_SIZE, BLOCK_SIZE)
-BLOCK_MAX_WIDTH = WIDTH//BLOCK_SIZE-1
+BLOCK_MAX_WIDTH = WIDTH//BLOCK_SIZE
 BLOCK_MAX_HEIGHT = HEIGHT//BLOCK_SIZE-1
 START_LENGTH=2
 
@@ -37,6 +39,11 @@ SNAKE_TAIL = pygame.transform.scale(SNAKE_TAIL_IMG,BLOCK)
 
 APPLE_IMG_FILE = pygame.image.load(Assets+'Apple.xcf')
 APPLE_IMG = pygame.transform.scale(APPLE_IMG_FILE,BLOCK)
+
+pygame.font.init()
+font = pygame.font.Font(None, BLOCK_SIZE)
+SCORE = font.render("Score: " + str(score),True,(10,10,10))
+SCORE_POS = SCORE.get_rect(x = 3, centery = BLOCK_SIZE/2)
 
 class APPLE:
     img = APPLE_IMG
@@ -70,9 +77,14 @@ snake[1].posX=BLOCK[0]*(BLOCK_MAX_WIDTH//3)
 snake[1].posY=BLOCK[1]*(BLOCK_MAX_HEIGHT-1)
 snake[1].previous_ptr=snake[0]
 
+
 def draw_window():
     WIN.fill(BROWN)
     pygame.draw.rect(WIN, WHITE,(pygame.Rect(0,35,WIDTH,5)))
+
+    #Score
+    SCORE = font.render("Score: " + str(score),True,(10,10,10))
+    WIN.blit(SCORE,SCORE_POS)
 
     #Draw Apple
     WIN.blit(apple.img,(apple.posX,apple.posY))
@@ -118,6 +130,15 @@ def move_snake(direction):
             snake[0].posY+=BLOCK_SIZE
             snake[0].rot=180
         adjust_snake_imges()
+        for s in snake:
+            if s.posX < 0:
+                s.posX += BLOCK_MAX_WIDTH*BLOCK_SIZE
+            if s.posX > (BLOCK_MAX_WIDTH-1)*BLOCK_SIZE:
+                s.posX = 0
+            if s.posY < BLOCK_SIZE:
+                s.posY = BLOCK_MAX_HEIGHT*BLOCK_SIZE
+            if s.posY > BLOCK_MAX_HEIGHT*BLOCK_SIZE:
+                s.posY = BLOCK_SIZE
     else:
         tick_counter+=1
 
@@ -179,16 +200,21 @@ def snake_add():
     newTail.previous_ptr = snake[-1]
     snake.append(newTail)
   
-for i in range(0,400):
-    snake_add()
-  
 def handle_apple():
+    global spd
+    global score
     if (snake[0].posX == apple.posX) and (snake[0].posY == apple.posY): 
         snake_add()
+        score += 1
+        if score % 10 == 0:
+            spd +=5
+            while len(snake)>3:
+                snake.pop()
+            snake[-1].img = SNAKE_TAIL
         generated = False
         while(not generated):
             apple.posX = BLOCK[0]*random.randrange(0,BLOCK_MAX_WIDTH)
-            apple.posY = BLOCK[1]*random.randrange(0,BLOCK_MAX_HEIGHT)
+            apple.posY = BLOCK[1]*(random.randrange(0,BLOCK_MAX_HEIGHT)+1)
             generated = True
             for s in snake:
                 if s.posX == apple.posX and s.posY == apple.posY:
@@ -198,7 +224,7 @@ def main():
     clock = pygame.time.Clock()
     direction = "RIGHT"
     while run:
-        clock.tick(FPS)
+        clock.tick(spd)
         move_snake(direction)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
