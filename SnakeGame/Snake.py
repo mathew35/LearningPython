@@ -5,6 +5,7 @@ tick_counter = 0
 speed = 3
 score = 0
 spd = FPS
+game_over = False
 BLOCK_SIZE = 40
 WIDTH, HEIGHT = 22*BLOCK_SIZE, 12*BLOCK_SIZE
 RES = (WIDTH, HEIGHT)
@@ -12,10 +13,12 @@ BLOCK = (BLOCK_SIZE, BLOCK_SIZE)
 BLOCK_MAX_WIDTH = WIDTH//BLOCK_SIZE
 BLOCK_MAX_HEIGHT = HEIGHT//BLOCK_SIZE-1
 START_LENGTH=2
+prev_dir = None
 
 WHITE = (255,255,255)
 BROWN = (200,100,50)
 
+pygame.init()
 WIN = pygame.display.set_mode(RES)
 pygame.display.set_caption("Snake Game")
 
@@ -39,6 +42,8 @@ SNAKE_TAIL = pygame.transform.scale(SNAKE_TAIL_IMG,BLOCK)
 
 APPLE_IMG_FILE = pygame.image.load(Assets+'Apple.xcf')
 APPLE_IMG = pygame.transform.scale(APPLE_IMG_FILE,BLOCK)
+
+GAME_OVER = pygame.Surface(pygame.Rect(0, 0, WIDTH, HEIGHT).size, pygame.SRCALPHA)
 
 pygame.font.init()
 font = pygame.font.Font(None, BLOCK_SIZE)
@@ -66,16 +71,24 @@ snake = []
 snake.append(SNAKE())
 snake[0].img=SNAKE_HEAD
 snake[0].rot=-90
-snake[0].posX=BLOCK[0]*(BLOCK_MAX_WIDTH//3+1)
+snake[0].posX=BLOCK[0]*(5)
 snake[0].posY=BLOCK[1]*(BLOCK_MAX_HEIGHT-1)
+
+#BODY
+snake.append(SNAKE())
+snake[1].img=SNAKE_BODY
+snake[1].rot=-90
+snake[1].posX=BLOCK[0]*(4)
+snake[1].posY=BLOCK[1]*(BLOCK_MAX_HEIGHT-1)
+snake[1].previous_ptr=snake[0]
 
 #TAIL
 snake.append(SNAKE())
-snake[1].img=SNAKE_TAIL
-snake[1].rot=-90
-snake[1].posX=BLOCK[0]*(BLOCK_MAX_WIDTH//3)
-snake[1].posY=BLOCK[1]*(BLOCK_MAX_HEIGHT-1)
-snake[1].previous_ptr=snake[0]
+snake[2].img=SNAKE_TAIL
+snake[2].rot=-90
+snake[2].posX=BLOCK[0]*(3)
+snake[2].posY=BLOCK[1]*(BLOCK_MAX_HEIGHT-1)
+snake[2].previous_ptr=snake[1]
 
 
 def draw_window():
@@ -92,55 +105,86 @@ def draw_window():
     #Draw Snake
     for s in snake:
         WIN.blit(pygame.transform.rotate(s.img,s.rot),(s.posX,s.posY))
+    
+    #game_over overlay
+    global game_over
+    if game_over :
+        pygame.draw.rect(GAME_OVER,pygame.Color(0,0,0,196),pygame.Rect(0, 0, WIDTH, HEIGHT))
+        WIN.blit(SCORE,(WIDTH/2,HEIGHT/2))
+        WIN.blit(GAME_OVER,(0,0))
+    
     pygame.display.update()
 
 def move_snake(direction):
     global tick_counter
     global speed
+    global game_over
+    global prev_dir
+    global score
+    dir_error = {"RIGHT":"LEFT","LEFT":"RIGHT","UP":"DOWN","DOWN":"UP"}
     if tick_counter > FPS//speed and direction != None:
         tick_counter = 0
-        for s in reversed(snake):
-            if s.previous_ptr == None:
-                break;
-            s.posX=s.previous_ptr.posX
-            s.posY=s.previous_ptr.posY
-            s.rot=s.previous_ptr.rot
-        if direction == "RIGHT":
-            # snake[1].posX=snake[1].previous_ptr.posX
-            # snake[1].posY=snake[1].previous_ptr.posY
-            # snake[1].rot=snake[1].previous_ptr.rot            
-            snake[0].posX+=BLOCK_SIZE
-            snake[0].rot=-90
-        if direction == "LEFT":   
-            # snake[1].posX=snake[1].previous_ptr.posX
-            # snake[1].posY=snake[1].previous_ptr.posY
-            # snake[1].rot=snake[1].previous_ptr.rot            
-            snake[0].posX-=BLOCK_SIZE
-            snake[0].rot=90
-        if direction == "UP":   
-            # snake[1].posX=snake[1].previous_ptr.posX
-            # snake[1].posY=snake[1].previous_ptr.posY
-            # snake[1].rot=snake[1].previous_ptr.rot            
-            snake[0].posY-=BLOCK_SIZE
-            snake[0].rot=0
-        if direction == "DOWN":    
-            # snake[1].posX=snake[1].previous_ptr.posX
-            # snake[1].posY=snake[1].previous_ptr.posY
-            # snake[1].rot=snake[1].previous_ptr.rot            
-            snake[0].posY+=BLOCK_SIZE
-            snake[0].rot=180
-        adjust_snake_imges()
-        for s in snake:
-            if s.posX < 0:
-                s.posX += BLOCK_MAX_WIDTH*BLOCK_SIZE
-            if s.posX > (BLOCK_MAX_WIDTH-1)*BLOCK_SIZE:
-                s.posX = 0
-            if s.posY < BLOCK_SIZE:
-                s.posY = BLOCK_MAX_HEIGHT*BLOCK_SIZE
-            if s.posY > BLOCK_MAX_HEIGHT*BLOCK_SIZE:
-                s.posY = BLOCK_SIZE
+        
+        new_posX = snake[0].posX
+        new_posY = snake[0].posY
+        new_rot = snake[0].rot
+
+        if dir_error.get(direction) != prev_dir:
+            prev_dir = direction
+        else:
+            direction = prev_dir
+
+        if direction == "RIGHT":       
+            new_posX+=BLOCK_SIZE
+            new_rot=-90
+
+        if direction == "LEFT":           
+            new_posX-=BLOCK_SIZE
+            new_rot=90
+
+        if direction == "UP":             
+            new_posY-=BLOCK_SIZE
+            new_rot=0
+
+        if direction == "DOWN":           
+            new_posY+=BLOCK_SIZE
+            new_rot=180
+                
+        if(new_posX < 0 or
+           new_posX > (BLOCK_MAX_WIDTH - 1) * BLOCK_SIZE or
+           new_posY < BLOCK_SIZE or
+           new_posY > BLOCK_MAX_HEIGHT * BLOCK_SIZE):
+            game_over = True
+            direction = None
+        else:
+            intersection = None
+            for s in reversed(snake):
+                if s.previous_ptr == None:
+                    break;
+                if (s.posX == snake[0].posX and
+                    s.posY == snake[0].posY):
+                    intersection = snake.index(s)
+                    
+                    while(len(snake)>intersection):
+                        score -= 1
+                        snake.pop()
+                        
+                    snake[-1].img = SNAKE_TAIL
+                
+            for s in reversed(snake):
+                if s.previous_ptr == None:
+                    break;
+                s.posX=s.previous_ptr.posX
+                s.posY=s.previous_ptr.posY
+                s.rot=s.previous_ptr.rot
+
+            snake[0].posX = new_posX
+            snake[0].posY = new_posY
+            snake[0].rot = new_rot
+            adjust_snake_imges()
     else:
         tick_counter+=1
+    return direction
 
 def adjust_snake_imges():
     for s in reversed(snake):
@@ -207,8 +251,8 @@ def handle_apple():
         snake_add()
         score += 1
         if score % 10 == 0:
-            spd +=5
-            while len(snake)>3:
+            spd +=10
+            while len(snake)>4:
                 snake.pop()
             snake[-1].img = SNAKE_TAIL
         generated = False
@@ -219,29 +263,42 @@ def handle_apple():
             for s in snake:
                 if s.posX == apple.posX and s.posY == apple.posY:
                     generated = False
+                    
+def reset_game():
+    while len(snake)>4:
+        snake.pop()
+    global game_over
+    game_over = False
+    return "RIGHT"
+
 def main():
+    global game_over
     run = True
     clock = pygame.time.Clock()
     direction = "RIGHT"
     while run:
         clock.tick(spd)
-        move_snake(direction)
+        direction = move_snake(direction)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
         keys_pressed = pygame.key.get_pressed()
-        if keys_pressed[pygame.K_UP]:
-            direction = ("UP")
-        elif keys_pressed[pygame.K_DOWN]:
-            direction = ("DOWN")
-        elif keys_pressed[pygame.K_LEFT]:
-            direction = ("LEFT")
-        elif keys_pressed[pygame.K_RIGHT]:
-            direction = ("RIGHT")
-        elif keys_pressed[pygame.K_ESCAPE]:
+        if keys_pressed[pygame.K_ESCAPE]:
             exit()
-        elif keys_pressed[pygame.K_SPACE]:
-            direction = None
+        if game_over == False:    
+            if keys_pressed[pygame.K_UP]:
+                direction = ("UP")
+            elif keys_pressed[pygame.K_DOWN]:
+                direction = ("DOWN")
+            elif keys_pressed[pygame.K_LEFT]:
+                direction = ("LEFT")
+            elif keys_pressed[pygame.K_RIGHT]:
+                direction = ("RIGHT")
+            elif keys_pressed[pygame.K_SPACE]:
+                direction = None
+        else:
+            if keys_pressed[pygame.K_r]:
+                direction = reset_game()
         handle_apple()
         draw_window()
     pygame.quit()
