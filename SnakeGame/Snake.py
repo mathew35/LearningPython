@@ -44,6 +44,9 @@ SNAKE_TAIL = pygame.transform.scale(SNAKE_TAIL_IMG,BLOCK)
 APPLE_IMG_FILE = pygame.image.load(os.path.join(Assets,'Apple.xcf'))
 APPLE_IMG = pygame.transform.scale(APPLE_IMG_FILE,BLOCK)
 
+TILE_IMG_FILE = pygame.image.load(os.path.join(Assets, 'Tile.xcf'))
+TILE_IMG = pygame.transform.scale(TILE_IMG_FILE,BLOCK)
+
 GAME_OVER = pygame.Surface(pygame.Rect(0, 0, WIDTH, HEIGHT).size, pygame.SRCALPHA)
 
 pygame.font.init()
@@ -118,6 +121,9 @@ def snake_reset():
 def draw_window():
     WIN.fill(BROWN)
     pygame.draw.rect(WIN, WHITE,(pygame.Rect(0,35,WIDTH,5)))
+    for i in range(BLOCK_MAX_HEIGHT):
+        for j in range(BLOCK_MAX_WIDTH):
+            WIN.blit(TILE_IMG,(BLOCK_SIZE*j,BLOCK_SIZE*(i+1)))
 
     #Score
     SCORE = font.render("Score: " + str(score),True,(10,10,10))
@@ -134,8 +140,12 @@ def draw_window():
     global game_over
     if game_over :
         pygame.draw.rect(GAME_OVER,pygame.Color(0,0,0,196),pygame.Rect(0, 0, WIDTH, HEIGHT))
-        WIN.blit(SCORE,(WIDTH/2,HEIGHT/2))
+        SCORE = pygame.transform.scale2x(SCORE)
         WIN.blit(GAME_OVER,(0,0))
+        score_bkg = pygame.Surface((SCORE.get_width(),SCORE.get_height()),pygame.SRCALPHA)
+        pygame.draw.rect(score_bkg, pygame.Color(255,255,255,250), pygame.Rect(0,0,SCORE.get_width(),SCORE.get_height()))
+        WIN.blit(score_bkg,(WIDTH/2 - SCORE.get_width()/2, HEIGHT/2 - SCORE.get_height()/2))
+        WIN.blit(SCORE,(WIDTH/2 - SCORE.get_width()/2,HEIGHT/2 - SCORE.get_height()/2))
     
     pygame.display.update()
 
@@ -279,21 +289,28 @@ def handle_apple():
             while len(snake)>4:
                 snake.pop()
             snake[-1].img = SNAKE_TAIL
-        generated = False
-        while(not generated):
-            apple.posX = BLOCK[0]*random.randrange(0,BLOCK_MAX_WIDTH)
-            apple.posY = BLOCK[1]*(random.randrange(0,BLOCK_MAX_HEIGHT)+1)
-            generated = True
-            for s in snake:
-                if s.posX == apple.posX and s.posY == apple.posY:
-                    generated = False
-                    
+        generate_apple()
+                  
+def generate_apple():
+    global apple
+    generated = False
+    while(not generated):
+        apple.posX = BLOCK[0]*random.randrange(0,BLOCK_MAX_WIDTH)
+        apple.posY = BLOCK[1]*(random.randrange(0,BLOCK_MAX_HEIGHT)+1)
+        generated = True
+        for s in snake:
+            if s.posX == apple.posX and s.posY == apple.posY:
+                generated = False  
+                
 def reset_game():
     while len(snake)>4:
         snake.pop()
     global game_over
     game_over = False
+    global score
+    score = 0
     snake_reset()
+    generate_apple()
     return "RIGHT"
 
 def main():
