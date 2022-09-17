@@ -1,5 +1,6 @@
 import pygame
 import random
+import os
 FPS = 144
 tick_counter = 0
 speed = 3
@@ -24,23 +25,23 @@ pygame.display.set_caption("Snake Game")
 
 
 
-Assets="SnakeGame\Assets\\"
-SNAKE_HEAD_IMG = pygame.image.load(Assets+'SnakeHead.png')
+Assets=os.path.join("SnakeGame","Assets")
+SNAKE_HEAD_IMG = pygame.image.load(os.path.join(Assets,'SnakeHead.png'))
 SNAKE_HEAD = pygame.transform.scale(SNAKE_HEAD_IMG,BLOCK)
 
-SNAKE_BODY_IMG = pygame.image.load(Assets+'SnakeBody.png')
+SNAKE_BODY_IMG = pygame.image.load(os.path.join(Assets,'SnakeBody.png'))
 SNAKE_BODY = pygame.transform.scale(SNAKE_BODY_IMG,BLOCK)
 
-SNAKE_LEFT_IMG = pygame.image.load(Assets+'SnakeTurnLeft.png')
+SNAKE_LEFT_IMG = pygame.image.load(os.path.join(Assets,'SnakeTurnLeft.png'))
 SNAKE_LEFT = pygame.transform.scale(SNAKE_LEFT_IMG,BLOCK)
 
-SNAKE_RIGHT_IMG = pygame.image.load(Assets+'SnakeTurnRight.png')
+SNAKE_RIGHT_IMG = pygame.image.load(os.path.join(Assets,'SnakeTurnRight.png'))
 SNAKE_RIGHT = pygame.transform.scale(SNAKE_RIGHT_IMG,BLOCK)
 
-SNAKE_TAIL_IMG = pygame.image.load(Assets+'SnakeTail.png')
+SNAKE_TAIL_IMG = pygame.image.load(os.path.join(Assets,'SnakeTail.png'))
 SNAKE_TAIL = pygame.transform.scale(SNAKE_TAIL_IMG,BLOCK)
 
-APPLE_IMG_FILE = pygame.image.load(Assets+'Apple.xcf')
+APPLE_IMG_FILE = pygame.image.load(os.path.join(Assets,'Apple.xcf'))
 APPLE_IMG = pygame.transform.scale(APPLE_IMG_FILE,BLOCK)
 
 GAME_OVER = pygame.Surface(pygame.Rect(0, 0, WIDTH, HEIGHT).size, pygame.SRCALPHA)
@@ -73,7 +74,6 @@ snake[0].img=SNAKE_HEAD
 snake[0].rot=-90
 snake[0].posX=BLOCK[0]*(5)
 snake[0].posY=BLOCK[1]*(BLOCK_MAX_HEIGHT-1)
-
 #BODY
 snake.append(SNAKE())
 snake[1].img=SNAKE_BODY
@@ -81,7 +81,6 @@ snake[1].rot=-90
 snake[1].posX=BLOCK[0]*(4)
 snake[1].posY=BLOCK[1]*(BLOCK_MAX_HEIGHT-1)
 snake[1].previous_ptr=snake[0]
-
 #TAIL
 snake.append(SNAKE())
 snake[2].img=SNAKE_TAIL
@@ -90,6 +89,31 @@ snake[2].posX=BLOCK[0]*(3)
 snake[2].posY=BLOCK[1]*(BLOCK_MAX_HEIGHT-1)
 snake[2].previous_ptr=snake[1]
 
+def snake_reset():
+    global snake
+    snake=[]
+    #HEAD
+    snake.append(SNAKE())
+    snake[0].img=SNAKE_HEAD
+    snake[0].rot=-90
+    snake[0].posX=BLOCK[0]*(5)
+    snake[0].posY=BLOCK[1]*(BLOCK_MAX_HEIGHT-1)
+
+    #BODY
+    snake.append(SNAKE())
+    snake[1].img=SNAKE_BODY
+    snake[1].rot=-90
+    snake[1].posX=BLOCK[0]*(4)
+    snake[1].posY=BLOCK[1]*(BLOCK_MAX_HEIGHT-1)
+    snake[1].previous_ptr=snake[0]
+
+    #TAIL
+    snake.append(SNAKE())
+    snake[2].img=SNAKE_TAIL
+    snake[2].rot=-90
+    snake[2].posX=BLOCK[0]*(3)
+    snake[2].posY=BLOCK[1]*(BLOCK_MAX_HEIGHT-1)
+    snake[2].previous_ptr=snake[1]
 
 def draw_window():
     WIN.fill(BROWN)
@@ -269,6 +293,7 @@ def reset_game():
         snake.pop()
     global game_over
     game_over = False
+    snake_reset()
     return "RIGHT"
 
 def main():
@@ -276,6 +301,7 @@ def main():
     run = True
     clock = pygame.time.Clock()
     direction = "RIGHT"
+    snake_reset();
     while run:
         clock.tick(spd)
         direction = move_snake(direction)
